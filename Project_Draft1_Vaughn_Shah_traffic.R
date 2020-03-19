@@ -114,73 +114,105 @@ corrplot(correlations, type="upper", order="hclust", tl.col="black", tl.srt=45)
 ### EDA - TIME SERIES
 ################################
 
+#all data
+plotts.sample.wge(traffic$traffic_volume)
+#truncated to last year
+plotts.sample.wge(traffic$traffic_volume[39444:48204])
+#truncated to 6 months 
+plotts.sample.wge(traffic$traffic_volume[43824:48204])
+#truncated to 3 months 
+plotts.sample.wge(traffic$traffic_volume[46014:48204])
+#truncated to 2 months 
+plotts.sample.wge(traffic$traffic_volume[46744:48204])
+#truncated to 1 month
+plotts.sample.wge(traffic$traffic_volume[47474:48204])
 
+length(traffic$traffic_volume[39444:48204]) 
 
-plotts.sample.wge(traffic$traffic_volume[47205:48204])
-length(traffic$traffic_volume[47205:48204]) 
-
+acf(traffic$traffic_volume[1:24102])
+acf(traffic$traffic_volume[24102:48204])
 
 ################################
 ### MODELING - TIME SERIES
 ################################
 
 #1 year = 8760 if we want to look back that far
-aic5.wge(traffic$traffic_volume[47205:48204],p=0:15,q=0:3,type = 'bic')
-#  Five Smallest Values of  bic 
-#        p    q        bic
-#  14    3    1   12.81832
-#  12    2    3   12.82339
-#  18    4    1   12.82486
-#  43   10    2   12.82678
-#  11    2    2   12.82858
+#looking at 2 months BIC
+aic5.wge(traffic$traffic_volume[46744:48204],p=0:15,q=0:3,type = 'bic')
+  #Five Smallest Values of  bic 
+  #      p    q        bic
+  #14    3    1   12.76788
+  #43   10    2   12.77147
+  #41   10    0   12.77183
+  #45   11    0   12.77235
+  #18    4    1   12.77284
 
+#1 year = 8760 BIC
+aic5.wge(traffic$traffic_volume[39444:48204],p=0:15,q=0:5,type = 'bic')
+  #Five Smallest Values of  bic 
+  #     p    q        bic
+  #47   11    2   12.69571
+  #43   10    2   12.69651
+  #51   12    2   12.69674
+  #48   11    3   12.69677
+  #59   14    2   12.69695
 
-aic5.wge(traffic$traffic_volume[47205:48204],p=0:20,q=0:3,type = 'aic')
-#  Five Smallest Values of  aic 
-#       p    q        aic
-#  72   17    3   12.74404
-#  84   20    3   12.74782
-#  76   18    3   12.74886
-#  70   17    1   12.75327
-#  78   19    1   12.75377
+#2months AIC
+aic5.wge(traffic$traffic_volume[46744:48204],p=0:20,q=0:3,type = 'aic')
+  #  Five Smallest Values of  aic 
+  #       p    q        aic
+  #  72   17    3   12.74404
+  #  84   20    3   12.74782
+  #  76   18    3   12.74886
+  #  70   17    1   12.75327
+  #  78   19    1   12.75377
 
+#1 year = 8760 AIC
+aic5.wge(traffic$traffic_volume[39444:48204],p=0:20,q=0:3,type = 'aic')
+  #Five Smallest Values of  aic 
+  #     p    q        aic
+  #84   20    3   12.64233
+  #76   18    3   12.64665
+  #79   19    2   12.65141
+  #82   20    1   12.65251
+  #78   19    1   12.65544
 
-#Fit the model using your model identification (p and q). You may use 
-#    any of the estimates you like (maximum likelihood, Yule–Walker, Burg).
-
-x=traffic$traffic_volume[47205:48204]
+#Fit the model using your model identification (p and q). For
+#For the last 2 month of data
+x=traffic$traffic_volume[46744:48204]
+end(x)
 
 s31=est.arma.wge(x,p=3, q=1)
   #Coefficients of Original polynomial:  
-  #2.1935 -1.5381 0.3201 
+  #  2.2137 -1.5760 0.3391 
   #
   #Factor                 Roots                Abs Recip    System Freq 
-  #1-1.8216B+0.8605B^2    1.0584+-0.2045i      0.9276       0.0304
-  #1-0.3720B              2.6885               0.3720       0.0000
+  #1-1.8175B+0.8558B^2    1.0619+-0.2024i      0.9251       0.0300
+  #1-0.3963B              2.5236               0.3963       0.0000
 
 s31$phi
-  #[1]  2.1935313 -1.5380646  0.3200765
+  #[1]  2.2137351 -1.5759921  0.3391203
 
 s31$theta
-  #[1] 0.8772135
+  #[1] 0.874308
 
 s31$avar
-  #[1] 356389
+  #[1] 342129.2
 
 mean(x)
-  #[1] 3314.262
+  #[1] 3364.218
 
 # Next We Examine the Residuals
-# X21$res: COntains residuals from the ARMA(3,1) fit
+# s23$res: COntains residuals from the ARMA(2,3) fit
 
 plotts.sample.wge(s31$res)
 acf(s31$res)
 
 
 # Use this model to generate an ASE from forecasting the last 48 datapoints 
-# Forecasting Last 15 observations
-s31.for = fore.arma.wge(x,phi=s31$phi,n.ahead=24,
-                          lastn=TRUE,limits=FALSE)
+# Forecasting Last 24 observations
+s31.for = fore.arma.wge(x[461:1461],phi=s31$phi,n.ahead=24,
+                          lastn=FALSE,limits=FALSE) 
 
 
 # Calculating ASE for Last 24 observations
@@ -196,8 +228,8 @@ s31.for = fore.arma.wge(x,phi=s31$phi,n.ahead=24,
 
 
 ######################################################
-# Fittiing a seasonal model to the Sunspot data
-# Find the ASE for this model using the last 15 years of sunspot data.
+# Fittiing a seasonal model to the data
+# Find the ASE for this model using the data
 # Looking at Realization, it appears that the data has
 # a seasonal component.
 
@@ -253,3 +285,75 @@ factor.wge(phi = c(rep(0,23),1))
   #1+1.7321B+1.0000B^2   -0.8660+-0.5000i      1.0000       0.4167
   #1+1.9319B+1.0000B^2   -0.9659+-0.2588i      1.0000       0.4583
   #1+1.0000B             -1.0000               1.0000       0.5000
+
+
+#difference the data s=24
+#For the last 2 month of data
+x=artrans.wge(traffic$traffic_volume[46744:48204],phi.tr = c(rep(0,23),1))
+
+
+#Fit the model using your model identification (p and q). For
+aic5.wge(x,p=0:20,q=0:3,type = 'bic')
+  #Five Smallest Values of  bic 
+  #      p    q        bic
+  #38    9    1   13.31252
+  #66   16    1   13.31496
+  #74   18    1   13.31514
+  #42   10    1   13.31745
+  #58   14    1   13.31861
+
+aic5.wge(x,p=0:20,q=0:3,type = 'aic')
+  #Five Smallest Values of  aic 
+  #      p    q        aic
+  #74   18    1   13.24179
+  #82   20    1   13.24204
+  #78   19    1   13.24486
+  #66   16    1   13.24894
+  #58   14    1   13.25993
+
+ns91=est.arma.wge(x,p=9, q=1)
+  #Coefficients of Original polynomial:  
+  #  2.1868 -1.4934 0.2989 -0.0211 0.0039 0.0758 -0.1854 0.2147 -0.0981 
+  #
+  #Factor                 Roots                Abs Recip    System Freq 
+  #1-1.9229B+0.9405B^2    1.0223+-0.1348i      0.9698       0.0209
+  #1-1.3563B+0.5961B^2    1.1375+-0.6192i      0.7721       0.0793
+  #1+0.7116B             -1.4054               0.7116       0.5000
+  #1+0.7972B+0.5045B^2   -0.7901+-1.1653i      0.7103       0.3448
+  #1-0.4164B+0.4874B^2    0.4272+-1.3672i      0.6981       0.2018
+
+ns91$phi
+#[1]  2.186795606 -1.493380230  0.298903594 -0.021051089  0.003941529  0.075834713 -0.185412702
+#[8]  0.214693277 -0.098100068
+
+ns91$theta
+#[1] 0.9561202
+
+ns91$avar
+#[1] 571983.1
+
+mean(x)
+#[1] -19.99443
+
+# Next We Examine the Residuals
+
+plotts.sample.wge(ns91$res)
+acf(ns91$res)
+
+
+# Use this model to generate an ASE from forecasting the last 48 datapoints 
+# Forecasting Last 24 observations
+ns91.for = fore.arma.wge(traffic$traffic_volume[47204:48204],phi=ns91$phi,n.ahead=24,
+                        lastn=FALSE,limits=FALSE) 
+
+x=traffic$traffic_volume[47204:48204]
+# Calculating ASE for Last 24 observations
+n = 24
+x.pred = ns91.for$f
+ASE = mean((x[(length(x)-n+1):(length(x))]-x.pred)^2)
+print(paste0('ASE: ',round(ASE,3)))
+
+# Use this model to generate an ASE from forecasting the last 48 datapoints 
+# Forecasting 24 observations forward
+s31.for = fore.arma.wge(x,phi=s31$phi,n.ahead=24,
+                        lastn=FALSE,limits=FALSE)
